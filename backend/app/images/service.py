@@ -4,6 +4,7 @@ from celery import chain
 from fastapi import UploadFile
 
 from app.core.config import settings
+from app.embeddings.qdrant_client import delete_embedding
 from app.images.exceptions import FileTooLarge, ImageNotFound, InvalidFileType
 from app.images.models import Image, ImageStatus
 from app.images.repository import ImageRepository
@@ -70,5 +71,6 @@ class ImageService:
         await storage.delete_object(image.storage_path)
         if image.thumbnail_path:
             await storage.delete_object(image.thumbnail_path)
+        await delete_embedding(image.id)
 
         await self.repository.delete(image)
