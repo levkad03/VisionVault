@@ -1,3 +1,4 @@
+import * as authApi from '@/api/auth';
 import type { User } from '@/types/auth';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
