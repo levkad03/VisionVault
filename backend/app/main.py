@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.embeddings.qdrant_client import ensure_collection_exists
 from app.images.api import router as images_router
+from app.search.api import router as search_router
 from app.shared.storage import ensure_bucket_exists
 
 
@@ -29,6 +30,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(images_router, prefix="/images", tags=["images"])
+app.include_router(search_router, prefix="/search", tags=["search"])
 
 
 @app.get("/health")

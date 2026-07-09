@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 
 from sqlalchemy import func, select
@@ -56,3 +58,12 @@ class ImageRepository:
         await self.session.commit()
         await self.session.refresh(image)
         return image
+
+    async def get_by_ids(
+        self, owner_id: uuid.UUID, ids: list[uuid.UUID]
+    ) -> list[Image]:
+        result = await self.session.execute(
+            select(Image).where(Image.owner_id == owner_id, Image.id.in_(ids))
+        )
+
+        return list(result.scalars().all())
