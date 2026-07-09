@@ -4,11 +4,12 @@ from pydantic import BaseModel
 
 from app.auth.backend import fastapi_users, get_jwt_strategy, get_refresh_strategy
 from app.auth.manager import UserManager, get_user_manager
-from app.auth.schemas import UserCreate, UserRead
+from app.auth.schemas import UserCreate, UserRead, UserUpdate
 
 router = APIRouter()
 
 router.include_router(fastapi_users.get_register_router(UserRead, UserCreate))
+router.include_router(fastapi_users.get_users_router(UserRead, UserUpdate))
 
 
 class TokenPair(BaseModel):
