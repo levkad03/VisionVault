@@ -14,7 +14,7 @@ $jobs += Start-Job -Name "backend" -ScriptBlock {
 
 $jobs += Start-Job -Name "worker" -ScriptBlock {
     Set-Location "$using:root\backend"
-    uv run celery -A app.core.celery_app worker --loglevel=info
+    uv run celery -A app.core.celery_app worker --loglevel=info --pool=solo
 }
 
 $jobs += Start-Job -Name "frontend" -ScriptBlock {
