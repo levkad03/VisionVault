@@ -5,7 +5,7 @@ from io import BytesIO
 from PIL import Image as PILImage
 
 from app.core.celery_app import celery_app
-from app.core.database import async_session_factory
+from app.core.database import task_db_session
 from app.embeddings.clip import encode_image
 from app.embeddings.qdrant_client import upsert_embedding
 from app.images.models import ImageStatus
@@ -22,7 +22,7 @@ def thumbnail_task(image_id: str) -> str:
 
 
 async def _thumbnail(image_id: uuid.UUID) -> None:
-    async with async_session_factory() as session:
+    async with task_db_session() as session:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
 
@@ -52,7 +52,7 @@ def embedding_task(image_id: str) -> str:
 
 
 async def _embedding(image_id: uuid.UUID) -> None:
-    async with async_session_factory() as session:
+    async with task_db_session() as session:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
 
@@ -69,7 +69,7 @@ def mark_completed_task(image_id: str) -> None:
 
 
 async def _mark_completed(image_id: uuid.UUID) -> None:
-    async with async_session_factory() as session:
+    async with task_db_session() as session:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
         await repository.update(image, status=ImageStatus.COMPLETED)
@@ -81,7 +81,7 @@ def mark_failed_task(request, exc, traceback, image_id: str) -> None:
 
 
 async def _mark_failed(image_id: uuid.UUID) -> None:
-    async with async_session_factory() as session:
+    async with task_db_session() as session:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
         if image is not None:
