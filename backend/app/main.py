@@ -6,8 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.api import router as auth_router
 from app.core.config import settings
 from app.core.database import get_db
+from app.images.api import router as images_router
+from app.shared.storage import ensure_bucket_exists
 
-app = FastAPI(title="VisionVault API")
+
+async def lifespan(app: FastAPI):
+    await ensure_bucket_exists()
+    yield
+
+
+app = FastAPI(title="VisionVault API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(images_router, prefix="/images", tags=["images"])
 
 
 @app.get("/health")

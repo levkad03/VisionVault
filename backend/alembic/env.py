@@ -11,6 +11,7 @@ from alembic import context
 from app.auth.models import User
 from app.core.config import settings
 from app.core.database import Base
+from app.images.models import Image
 
 config = context.config
 if config.config_file_name is not None:
