@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="VisionVault API")
+app = FastAPI(title="VisionVault API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
