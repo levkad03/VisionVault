@@ -45,3 +45,14 @@ class ImageRepository:
     async def delete(self, image: Image) -> None:
         await self.session.delete(image)
         await self.session.commit()
+
+    async def get_by_id(self, image_id: uuid.UUID) -> Image | None:
+        result = await self.session.execute(select(Image).where(Image.id == image_id))
+        return result.scalar_one_or_none()
+
+    async def update(self, image: Image, **fields) -> Image:
+        for key, value in fields.items():
+            setattr(image, key, value)
+        await self.session.commit()
+        await self.session.refresh(image)
+        return image
