@@ -1,7 +1,14 @@
 import uuid
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 
 from app.core.config import settings
 
@@ -37,3 +44,20 @@ async def delete_embedding(image_id: uuid.UUID) -> None:
         collection_name=settings.qdrant_collection_name,
         points_selector=[str(image_id)],
     )
+
+
+async def search(
+    owner_id: uuid.UUID, vector: list[float], limit: int, offset: int
+) -> list[tuple[uuid.UUID, float]]:
+    response = await client.query_points(
+        collection_name=settings.qdrant_collection_name,
+        query=vector,
+        query_filter=Filter(
+            must=[FieldCondition(key="owner_id", match=MatchValue(value=str(owner_id)))]
+        ),
+        limit=limit,
+        offset=offset,
+    )
+    return [
+        (uuid.UUID(point.payload["image_id"]), point.score) for point in response.points
+    ]
