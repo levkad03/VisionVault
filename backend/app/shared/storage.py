@@ -43,3 +43,14 @@ async def get_presigned_url(
     return await run_in_threadpool(
         _client.presigned_get_object, settings.minio_bucket_name, object_name, expires
     )
+
+
+async def download_bytes(object_name: str) -> bytes:
+    response = await run_in_threadpool(
+        _client.get_object, settings.minio_bucket_name, object_name
+    )
+    try:
+        return await run_in_threadpool(response.read)
+    finally:
+        await run_in_threadpool(response.close)
+        await run_in_threadpool(response.release_conn)
