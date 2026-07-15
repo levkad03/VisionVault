@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/stores/auth';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -26,12 +30,30 @@ async function onSubmit() {
 </script>
 
 <template>
-  <form class="mx-auto mt-24 flex max-w-sm flex-col gap-4" @submit.prevent="onSubmit">
-    <h1 class="text-xl font-bold">Log in</h1>
-    <input v-model="email" type="email" placeholder="Email" required class="border p-2" />
-    <input v-model="password" type="password" placeholder="Password" required class="border p-2" />
-    <p v-if="error" class="text-red-500">{{ error }}</p>
-    <button type="submit" :disabled="loading" class="bg-black p-2 text-white">Log in</button>
-    <RouterLink to="/register" class="text-sm underline">Need an account?</RouterLink>
-  </form>
+  <div class="flex min-h-screen items-center justify-center p-4">
+    <Card class="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle class="text-2xl">Log in</CardTitle>
+        <CardDescription>Enter email below to log into your account</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
+          <div class="flex flex-col gap-2">
+            <Label for="email">Email</Label>
+            <Input id="email" v-model="email" type="email" placeholder="you@example.com" required />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label for="password">Password</Label>
+            <Input id="password" v-model="password" type="password" required />
+          </div>
+          <p v-if="error" class="text-destructive text-sm">{{ error }}</p>
+          <Button type="submit" :disabled="loading" class="w-full">Log in</Button>
+        </form>
+        <p class="text-muted-foreground mt-4 text-center text-sm">
+          Need an Account?
+          <RouterLink to="/register" class="underline underline-offset-4">Register</RouterLink>
+        </p>
+      </CardContent>
+    </Card>
+  </div>
 </template>
