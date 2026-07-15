@@ -27,7 +27,7 @@ Write-Host "Started backend, worker, frontend as background jobs. Ctrl+C to stop
 try {
     while ($true) {
         foreach ($job in $jobs) {
-            Receive-Job -Job $job | ForEach-Object { Write-Host "[$($job.Name)] $_" }
+            Receive-Job -Job $job -ErrorAction Continue | ForEach-Object { Write-Host "[$($job.Name)] $_" }
         }
         Start-Sleep -Milliseconds 300
     }
