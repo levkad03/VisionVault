@@ -75,3 +75,6 @@ class ImageService:
         await delete_embedding(image.id)
 
         await self.repository.delete(image)
+
+    async def stats(self, owner_id) -> tuple[int, int]:
+        return await self.repository.stats(owner_id)

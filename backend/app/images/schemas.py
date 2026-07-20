@@ -27,3 +27,8 @@ class ImageList(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class ImageStats(BaseModel):
+    count: int
+    storage_bytes: int
