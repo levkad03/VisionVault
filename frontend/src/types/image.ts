@@ -22,3 +22,8 @@ export interface ImageList {
   limit: number;
   offset: number;
 }
+
+export interface ImageStats {
+  count: number;
+  storage_bytes: number;
+}
