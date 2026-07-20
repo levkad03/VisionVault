@@ -15,6 +15,12 @@ function onLogout() {
   <div>
     <header class="flex items-center justify-between border-b p-4">
       <span>VisionVault</span>
+      <nav class="flex gap-4 text-sm">
+        <RouterLink to="/">Dashboard</RouterLink>
+        <RouterLink to="/upload">Upload</RouterLink>
+        <RouterLink to="/gallery">Gallery</RouterLink>
+        <RouterLink to="/search">Search</RouterLink>
+      </nav>
       <div class="flex items-center gap-4">
         <span class="text-sm">{{ auth.user?.email }}</span>
         <button class="text-sm underline" @click="onLogout">Logout</button>
