@@ -38,6 +38,7 @@ class ImageService:
             filename=file.filename,
             storage_path=object_name,
             mime_type=file.content_type,
+            size_bytes=len(contents),
             status=ImageStatus.PENDING,
         )
 
