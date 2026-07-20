@@ -23,6 +23,7 @@ const router = createRouter({
         { path: '', name: 'dashboard', component: () => import('@/pages/DashboardPage.vue') },
         { path: 'upload', name: 'upload', component: () => import('@/pages/UploadPage.vue') },
         { path: 'gallery', name: 'gallery', component: () => import('@/pages/GalleryPage.vue') },
+        { path: 'search', name: 'search', component: () => import('@/pages/SearchPage.vue') },
       ],
     },
   ],
