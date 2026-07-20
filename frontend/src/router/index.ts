@@ -21,6 +21,8 @@ const router = createRouter({
       component: () => import('@/layouts/AppLayout.vue'),
       children: [
         { path: '', name: 'dashboard', component: () => import('@/pages/DashboardPage.vue') },
+        { path: 'upload', name: 'upload', component: () => import('@/pages/UploadPage.vue') },
+        { path: 'gallery', name: 'gallery', component: () => import('@/pages/GalleryPage.vue') },
       ],
     },
   ],
