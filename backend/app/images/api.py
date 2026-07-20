@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.images.exceptions import FileTooLarge, ImageNotFound, InvalidFileType
 from app.images.models import Image, ImageStatus
 from app.images.repository import ImageRepository
-from app.images.schemas import ImageList, ImageRead
+from app.images.schemas import ImageList, ImageRead, ImageStats
 from app.images.service import ImageService
 from app.shared import storage
 
@@ -73,6 +73,15 @@ async def list_images(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/stats", response_model=ImageStats)
+async def get_stats(
+    user: User = Depends(current_active_user),
+    service: ImageService = Depends(get_service),
+) -> ImageStats:
+    count, storage_bytes = await service.stats(user.id)
+    return ImageStats(count=count, storage_bytes=storage_bytes)
 
 
 @router.get("/{image_id}", response_model=ImageRead)

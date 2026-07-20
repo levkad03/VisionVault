@@ -67,3 +67,12 @@ class ImageRepository:
         )
 
         return list(result.scalars().all())
+
+    async def stats(self, owner_id: uuid.UUID) -> tuple[int, int]:
+        result = await self.session.execute(
+            select(
+                func.count(Image.id), func.coalesce(func.sum(Image.size_bytes), 0)
+            ).where(Image.owner_id == owner_id)
+        )
+
+        return result.one()
