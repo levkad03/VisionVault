@@ -75,6 +75,15 @@ async def list_images(
     )
 
 
+@router.get("/stats", response_model=ImageStats)
+async def get_stats(
+    user: User = Depends(current_active_user),
+    service: ImageService = Depends(get_service),
+) -> ImageStats:
+    count, storage_bytes = await service.stats(user.id)
+    return ImageStats(count=count, storage_bytes=storage_bytes)
+
+
 @router.get("/{image_id}", response_model=ImageRead)
 async def get_image(
     image_id: uuid.UUID,
@@ -99,12 +108,3 @@ async def delete_image(
         await service.delete(user.id, image_id)
     except ImageNotFound as exc:
         raise HTTPException(status_code=404, detail="Image not found") from exc
-
-
-@router.get("/stats", response_model=ImageStats)
-async def get_stats(
-    user: User = Depends(current_active_user),
-    service: ImageService = Depends(get_service),
-) -> ImageStats:
-    count, storage_bytes = await service.stats(user.id)
-    return ImageStats(count=count, storage_bytes=storage_bytes)
