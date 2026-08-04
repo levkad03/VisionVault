@@ -65,7 +65,7 @@ class ImageService:
         offset: int,
         status_filter: ImageStatus | None,
     ) -> tuple[list[Image], int]:
-        return await self.repository.list(owner_id, limit, offset, status_filter)
+        return await self.repository.list_images(owner_id, limit, offset, status_filter)
 
     async def delete(self, owner_id: uuid.UUID, image_id: uuid.UUID) -> None:
         image = await self.get(owner_id, image_id)
