@@ -26,6 +26,9 @@ async def _thumbnail(image_id: uuid.UUID) -> None:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
 
+        if image is None:
+            return
+
         original = await storage.download_bytes(image.storage_path)
         with PILImage.open(BytesIO(original)) as img:
             width, height = img.size
@@ -56,6 +59,9 @@ async def _embedding(image_id: uuid.UUID) -> None:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
 
+        if image is None:
+            return
+
         original = await storage.download_bytes(image.storage_path)
         with PILImage.open(BytesIO(original)) as img:
             vector = encode_image(img.convert("RGB"))
@@ -72,6 +78,10 @@ async def _mark_completed(image_id: uuid.UUID) -> None:
     async with task_db_session() as session:
         repository = ImageRepository(session)
         image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
         await repository.update(image, status=ImageStatus.COMPLETED)
 
 

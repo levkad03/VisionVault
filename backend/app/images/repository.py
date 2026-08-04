@@ -25,7 +25,7 @@ class ImageRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list(
+    async def list_images(
         self,
         owner_id: uuid.UUID,
         limit: int,
@@ -75,4 +75,6 @@ class ImageRepository:
             ).where(Image.owner_id == owner_id)
         )
 
-        return result.one()
+        count, storage_bytes = result.one()
+
+        return count, storage_bytes

@@ -58,6 +58,10 @@ async def search(
         limit=limit,
         offset=offset,
     )
-    return [
-        (uuid.UUID(point.payload["image_id"]), point.score) for point in response.points
-    ]
+    results = []
+
+    for point in response.points:
+        assert point.payload is not None
+        results.append((uuid.UUID(point.payload["image_id"]), point.score))
+
+    return results
