@@ -32,6 +32,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: test
+          MINIO_ROOT_PASSWORD: testtesttest
+          MINIO_DEFAULT_BUCKETS: visionvault-test
+        ports:
+          - "9000:9000"
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
       CELERY_BROKER_URL: redis://localhost:6379/0
