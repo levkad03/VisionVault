@@ -32,20 +32,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      minio:
-        image: bitnami/minio:latest
-        env:
-          MINIO_ROOT_USER: test
-          MINIO_ROOT_PASSWORD: testtesttest
-          MINIO_DEFAULT_BUCKETS: visionvault-test
-        ports:
-          - "9000:9000"
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
       CELERY_BROKER_URL: redis://localhost:6379/0
@@ -75,6 +61,26 @@ jobs:
 
       - name: Lint (ruff)
         run: uv run ruff check .
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=test \
+            -e MINIO_ROOT_PASSWORD=testtesttest \
+            minio/minio server /data
+
+      - name: Wait for MinIO
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/live && exit 0
+            sleep 1
+          done
+          echo "MinIO did not become healthy in time" >&2
+          exit 1
+
+      - name: Create MinIO bucket
+        run: uv run python -c "import asyncio; from app.shared.storage import ensure_bucket_exists; asyncio.run(ensure_bucket_exists())"
 
       - name: Test (pytest)
         run: uv run pytest
