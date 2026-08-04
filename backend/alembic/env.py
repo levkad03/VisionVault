@@ -1,17 +1,16 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
 from alembic import context
 
 # import feature models here once they exist, e.g.:
 # from app.images.models import Image  # noqa: F401
-from app.auth.models import User
+from app.auth.models import User  # noqa: F401
 from app.core.config import settings
 from app.core.database import Base
-from app.images.models import Image
+from app.images.models import Image  # noqa: F401
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 config = context.config
 if config.config_file_name is not None:
