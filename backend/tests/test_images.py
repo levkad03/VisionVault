@@ -174,7 +174,9 @@ async def test_delete_raises_for_other_owner(service, session, user):
         await service.delete(uuid.uuid4(), image.id)
 
 
-async def test_stats_counts_and_sums_owner_images_only(service, session, user, other_user):
+async def test_stats_counts_and_sums_owner_images_only(
+    service, session, user, other_user
+):
     await _create_image(session, user.id, size_bytes=100)
     await _create_image(session, user.id, size_bytes=250)
     await _create_image(session, other_user.id, size_bytes=999)
@@ -225,7 +227,12 @@ async def test_list_images_returns_owned_images_via_api(client, session):
     me = (await client.get("/auth/me", headers=headers)).json()
     await _create_image(session, uuid.UUID(me["id"]), filename="a.jpg")
 
-    r = await client.get("/images", headers=headers)
+    with patch(
+        "app.images.api.storage.get_presigned_url",
+        new=AsyncMock(return_value="http://fake-url"),
+    ):
+        r = await client.get("/images", headers=headers)
+
     assert r.status_code == 200
     body = r.json()
     assert body["total"] == 1
