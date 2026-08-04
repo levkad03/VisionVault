@@ -15,8 +15,12 @@ const uploadMutation = useMutation({
 
 async function onSubmit() {
   if (!files.value) return;
-  for (const file of Array.from(files.value)) {
-    await uploadMutation.mutateAsync(file);
+  try {
+    for (const file of Array.from(files.value)) {
+      await uploadMutation.mutateAsync(file);
+    }
+  } catch {
+    return;
   }
   files.value = null;
 }
