@@ -77,7 +77,9 @@ async def test_search_returns_empty_when_no_qdrant_hits(service, user):
         patch(
             "app.search.service.qdrant_client.search", new=AsyncMock(return_value=[])
         ) as mock_search,
-        patch.object(service.repository, "get_by_ids", new=AsyncMock()) as mock_get_by_ids,
+        patch.object(
+            service.repository, "get_by_ids", new=AsyncMock()
+        ) as mock_get_by_ids,
     ):
         results = await service.search(user.id, "query", limit=10, offset=0)
 
@@ -141,6 +143,10 @@ async def test_search_endpoint_returns_scored_results(client, session):
         patch(
             "app.search.service.qdrant_client.search",
             new=AsyncMock(return_value=[(image.id, 0.88)]),
+        ),
+        patch(
+            "app.images.api.storage.get_presigned_url",
+            new=AsyncMock(return_value="http://fake-url"),
         ),
     ):
         r = await client.post("/search", headers=headers, json={"query": "a cat"})
