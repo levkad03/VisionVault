@@ -31,7 +31,7 @@ function onLogout() {
           <Moon v-else class="size-4" />
         </Button>
         <span class="text-sm">{{ auth.user?.email }}</span>
-        <button class="text-sm underline" @click="onLogout">Logout</button>
+        <Button variant="link" size="sm" class="p-0" @click="onLogout">Logout</Button>
       </div>
     </header>
     <main class="p-4">
