@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/composables/useTheme';
 import { useAuthStore } from '@/stores/auth';
+import { Moon, Sun } from '@lucide/vue';
 import { useRouter } from 'vue-router';
 
 const auth = useAuthStore();
 const router = useRouter();
+const { isDark, toggleTheme } = useTheme();
 
 function onLogout() {
   auth.logout();
@@ -21,6 +25,11 @@ function onLogout() {
         <RouterLink to="/gallery">Gallery</RouterLink>
         <RouterLink to="/search">Search</RouterLink>
       </nav>
+      <Button variant="ghost" size="icon" @click="toggleTheme()">
+        <Sun v-if="isDark" class="size-4" />
+        <Moon v-else class="size-4" />
+      </Button>
+
       <div class="flex items-center gap-4">
         <span class="text-sm">{{ auth.user?.email }}</span>
         <button class="text-sm underline" @click="onLogout">Logout</button>
