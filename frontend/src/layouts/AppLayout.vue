@@ -25,12 +25,11 @@ function onLogout() {
         <RouterLink to="/gallery">Gallery</RouterLink>
         <RouterLink to="/search">Search</RouterLink>
       </nav>
-      <Button variant="ghost" size="icon" @click="toggleTheme()">
-        <Sun v-if="isDark" class="size-4" />
-        <Moon v-else class="size-4" />
-      </Button>
-
       <div class="flex items-center gap-4">
+        <Button variant="ghost" size="icon" @click="toggleTheme()">
+          <Sun v-if="isDark" class="size-4" />
+          <Moon v-else class="size-4" />
+        </Button>
         <span class="text-sm">{{ auth.user?.email }}</span>
         <button class="text-sm underline" @click="onLogout">Logout</button>
       </div>
