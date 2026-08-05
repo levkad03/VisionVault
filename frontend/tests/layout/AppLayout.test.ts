@@ -51,7 +51,8 @@ describe('AppLayout', () => {
 
   it('logs out and redirects to login on logout click', async () => {
     const wrapper = mountLayout();
-    await wrapper.find('button').trigger('click');
+    const logoutButton = wrapper.findAll('button').find((b) => b.text() === 'Logout')!;
+    await logoutButton.trigger('click');
 
     expect(authMock.logout).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledWith({ name: 'login' });
@@ -60,6 +61,7 @@ describe('AppLayout', () => {
   it('renders without crashing when there is no user', () => {
     authMock.user = null;
     const wrapper = mountLayout();
-    expect(wrapper.find('button').text()).toBe('Logout');
+    const logoutButton = wrapper.findAll('button').find((b) => b.text() === 'Logout');
+    expect(logoutButton?.text()).toBe('Logout');
   });
 });
