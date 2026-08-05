@@ -17,7 +17,9 @@ function onLogout() {
 
 <template>
   <div>
-    <header class="flex items-center justify-between border-b p-4">
+    <header
+      class="bg-sidebar text-sidebar-foreground border-sidebar-border flex items-center justify-between border-b p-4"
+    >
       <span>VisionVault</span>
       <nav class="flex gap-4 text-sm">
         <RouterLink to="/">Dashboard</RouterLink>
