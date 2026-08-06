@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from celery import chain
 from fastapi import UploadFile
@@ -8,6 +9,7 @@ from app.embeddings.qdrant_client import delete_embedding
 from app.images.exceptions import FileTooLarge, ImageNotFound, InvalidFileType
 from app.images.models import Image, ImageStatus
 from app.images.repository import ImageRepository
+from app.images.schemas import ImageStats, UploadsPerDay
 from app.processing.tasks import (
     embedding_task,
     mark_completed_task,
@@ -76,5 +78,25 @@ class ImageService:
 
         await self.repository.delete(image)
 
-    async def stats(self, owner_id) -> tuple[int, int]:
-        return await self.repository.stats(owner_id)
+    async def stats(self, owner_id) -> ImageStats:
+        count, storage_bytes = await self.repository.stats(owner_id)
+        by_status = await self.repository.status_counts(owner_id)
+        by_mime_type = await self.repository.mime_type_counts(owner_id)
+        raw_uploads = dict(await self.repository.uploads_per_day(owner_id))
+
+        today = datetime.now(UTC).date()
+        uploads_per_day = [
+            UploadsPerDay(
+                date=today - timedelta(days=i),
+                count=raw_uploads.get(today - timedelta(days=i), 0),
+            )
+            for i in range(29, -1, -1)
+        ]
+
+        return ImageStats(
+            count=count,
+            storage_bytes=storage_bytes,
+            by_status=by_status,
+            by_mime_type=by_mime_type,
+            uploads_per_day=uploads_per_day,
+        )

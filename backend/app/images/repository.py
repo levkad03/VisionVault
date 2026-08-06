@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -67,6 +68,38 @@ class ImageRepository:
         )
 
         return list(result.scalars().all())
+
+    async def status_counts(self, owner_id: uuid.UUID) -> dict[ImageStatus, int]:
+        result = await self.session.execute(
+            select(Image.status, func.count(Image.id))
+            .where(Image.owner_id == owner_id)
+            .group_by(Image.status)
+        )
+
+        return dict(result.tuples().all())
+
+    async def mime_type_counts(self, owner_id: uuid.UUID) -> dict[str, int]:
+        result = await self.session.execute(
+            select(Image.mime_type, func.count(Image.id))
+            .where(Image.owner_id == owner_id)
+            .group_by(Image.mime_type)
+        )
+
+        return dict(result.tuples().all())
+
+    async def uploads_per_day(
+        self, owner_id: uuid.UUID, days: int = 30
+    ) -> list[tuple[date, int]]:
+        since = datetime.now(UTC) - timedelta(days=days)
+
+        result = await self.session.execute(
+            select(func.date(Image.uploaded_at), func.count(Image.id))
+            .where(Image.owner_id == owner_id, Image.uploaded_at >= since)
+            .group_by(func.date(Image.uploaded_at))
+            .order_by(func.date(Image.uploaded_at))
+        )
+
+        return list(result.tuples().all())
 
     async def stats(self, owner_id: uuid.UUID) -> tuple[int, int]:
         result = await self.session.execute(

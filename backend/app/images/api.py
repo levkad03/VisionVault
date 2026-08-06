@@ -80,8 +80,7 @@ async def get_stats(
     user: User = Depends(current_active_user),
     service: ImageService = Depends(get_service),
 ) -> ImageStats:
-    count, storage_bytes = await service.stats(user.id)
-    return ImageStats(count=count, storage_bytes=storage_bytes)
+    return await service.stats(user.id)
 
 
 @router.get("/{image_id}", response_model=ImageRead)

@@ -5,5 +5,5 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [vue()],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  test: { environment: 'jsdom', globals: true },
+  test: { environment: 'jsdom', globals: true, setupFiles: ['./tests/setup.ts'] },
 });
