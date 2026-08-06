@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from unittest.mock import AsyncMock, patch
 
@@ -177,19 +178,37 @@ async def test_delete_raises_for_other_owner(service, session, user):
 async def test_stats_counts_and_sums_owner_images_only(
     service, session, user, other_user
 ):
-    await _create_image(session, user.id, size_bytes=100)
-    await _create_image(session, user.id, size_bytes=250)
+    await _create_image(
+        session,
+        user.id,
+        size_bytes=100,
+        status=ImageStatus.COMPLETED,
+        mime_type="image/jpeg",
+    )
+    await _create_image(
+        session,
+        user.id,
+        size_bytes=250,
+        status=ImageStatus.PENDING,
+        mime_type="image/png",
+    )
     await _create_image(session, other_user.id, size_bytes=999)
 
-    count, storage_bytes = await service.stats(user.id)
-    assert count == 2
-    assert storage_bytes == 350
+    stats = await service.stats(user.id)
+    assert stats.count == 2
+    assert stats.storage_bytes == 350
+    assert stats.by_status == {ImageStatus.COMPLETED: 1, ImageStatus.PENDING: 1}
+    assert stats.by_mime_type == {"image/jpeg": 1, "image/png": 1}
 
 
 async def test_stats_empty_for_new_owner(service):
-    count, storage_bytes = await service.stats(uuid.uuid4())
-    assert count == 0
-    assert storage_bytes == 0
+    stats = await service.stats(uuid.uuid4())
+    assert stats.count == 0
+    assert stats.storage_bytes == 0
+    assert stats.by_status == {}
+    assert stats.by_mime_type == {}
+    assert len(stats.uploads_per_day) == 30
+    assert all(day.count == 0 for day in stats.uploads_per_day)
 
 
 async def test_upload_rejects_unsupported_type_via_api(client):
@@ -243,8 +262,31 @@ async def test_list_images_returns_owned_images_via_api(client, session):
 async def test_stats_endpoint_returns_counts(client, session):
     headers = await _auth_headers(client)
     me = (await client.get("/auth/me", headers=headers)).json()
-    await _create_image(session, uuid.UUID(me["id"]), size_bytes=500)
+    await _create_image(
+        session, uuid.UUID(me["id"]), size_bytes=500, status=ImageStatus.COMPLETED
+    )
 
     r = await client.get("/images/stats", headers=headers)
     assert r.status_code == 200
-    assert r.json() == {"count": 1, "storage_bytes": 500}
+    body = r.json()
+    assert body["count"] == 1
+    assert body["storage_bytes"] == 500
+    assert body["by_status"] == {"completed": 1}
+    assert len(body["uploads_per_day"]) == 30
+
+
+async def test_stats_uploads_per_day_fills_gaps_and_excludes_old_uploads(
+    service, session, user
+):
+    today = datetime.now(UTC).date()
+
+    await _create_image(session, user.id, uploaded_at=datetime.now(UTC))
+    await _create_image(
+        session, user.id, uploaded_at=datetime.now(UTC) - timedelta(days=40)
+    )
+
+    stats = await service.stats(user.id)
+    by_date = {day.date: day.count for day in stats.uploads_per_day}
+    assert by_date[today] == 1
+    assert stats.count == 2
+    assert len(stats.uploads_per_day) == 30
