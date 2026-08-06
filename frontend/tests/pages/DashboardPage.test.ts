@@ -18,6 +18,14 @@ vi.mock('@/api/images', () => ({
 
 const imagesApi = await import('@/api/images');
 
+const emptyStats: ImageStats = {
+  count: 0,
+  storage_bytes: 0,
+  by_status: { pending: 0, processing: 0, completed: 0, failed: 0 },
+  by_mime_type: {},
+  uploads_per_day: [],
+};
+
 function mountPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -35,13 +43,7 @@ beforeEach(() => {
 
 describe('DashboardPage', () => {
   it('renders the logged-in user email', async () => {
-    vi.mocked(imagesApi.getImageStats).mockResolvedValue({
-      count: 0,
-      storage_bytes: 0,
-      by_status: {},
-      by_mime_type: {},
-      uploads_per_day: [],
-    } as ImageStats);
+    vi.mocked(imagesApi.getImageStats).mockResolvedValue(emptyStats);
     const wrapper = mountPage();
     expect(wrapper.text()).toContain('a@b.com');
   });
@@ -55,13 +57,7 @@ describe('DashboardPage', () => {
   });
 
   it('renders the image count once loaded', async () => {
-    vi.mocked(imagesApi.getImageStats).mockResolvedValue({
-      count: 7,
-      storage_bytes: 0,
-      by_status: {},
-      by_mime_type: {},
-      uploads_per_day: [],
-    } as ImageStats);
+    vi.mocked(imagesApi.getImageStats).mockResolvedValue({ ...emptyStats, count: 7 });
     const wrapper = mountPage();
     await flushPromises();
     expect(wrapper.findAll('.text-2xl')[0].text()).toBe('7');
@@ -74,7 +70,7 @@ describe('DashboardPage', () => {
     [3 * 1024 ** 2, '3.0 MB'],
     [2 * 1024 ** 3, '2.0 GB'],
   ] as [number, string][])('formats %i storage_bytes as %s', async (storage_bytes, expected) => {
-    vi.mocked(imagesApi.getImageStats).mockResolvedValue({ count: 1, storage_bytes } as ImageStats);
+    vi.mocked(imagesApi.getImageStats).mockResolvedValue({ ...emptyStats, count: 1, storage_bytes });
     const wrapper = mountPage();
     await flushPromises();
     expect(wrapper.findAll('.text-2xl')[1].text()).toBe(expected);
