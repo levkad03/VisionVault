@@ -2,12 +2,15 @@
 import { deleteImage, listImages } from '@/api/images';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import type { Image } from '@/types/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
 const limit = 24;
 const offset = ref(0);
 const queryClient = useQueryClient();
+const selectedImage = ref<Image | null>(null);
 
 const { data, isPending } = useQuery({
   queryKey: ['images', offset],
@@ -35,7 +38,8 @@ const deleteMutation = useMutation({
         <img
           :src="image.thumbnail_url ?? image.url"
           :alt="image.filename"
-          class="aspect-square w-full rounded object-cover"
+          class="aspect-square w-full cursor-pointer rounded object-cover"
+          @click="selectedImage = image"
         />
         <Badge v-if="image.status !== 'completed'" class="absolute top-2 left-2">
           {{ image.status }}
@@ -50,6 +54,17 @@ const deleteMutation = useMutation({
         </Button>
       </div>
     </div>
+    <Dialog :open="!!selectedImage" @update:open="(v) => !v && (selectedImage = null)">
+      <DialogContent class="max-w-3-xl border-none bg-transparent p-0 shadow-none">
+        <DialogTitle class="sr-only">{{ selectedImage?.filename }}</DialogTitle>
+        <img
+          v-if="selectedImage"
+          :src="selectedImage.url"
+          :alt="selectedImage.filename"
+          class="max-h-[85vh] w-full rounded object-contain"
+        />
+      </DialogContent>
+    </Dialog>
     <div class="mt-4 flex gap-2">
       <Button variant="outline" :disabled="offset === 0" @click="offset -= limit">Prev</Button>
       <Button variant="outline" :disabled="!hasNext" @click="offset += limit">Next</Button>
