@@ -23,7 +23,7 @@ const template = componentToString(config, ChartTooltipContent, {
 </script>
 
 <template>
-  <ChartContainer :config="config" class="h-32 w-full">
+  <ChartContainer :config="config" class="h-80 w-full">
     <VisXYContainer :data="data">
       <VisGroupedBar :x="x" :y="[y]" color="var(--color-count)" :rounded-corners="2" />
       <VisAxis type="x" :tick-format="(i: number) => labels[i] ?? ''" :grid-line="false" />
