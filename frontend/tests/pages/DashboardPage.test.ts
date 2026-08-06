@@ -35,7 +35,13 @@ beforeEach(() => {
 
 describe('DashboardPage', () => {
   it('renders the logged-in user email', async () => {
-    vi.mocked(imagesApi.getImageStats).mockResolvedValue({ count: 0, storage_bytes: 0 });
+    vi.mocked(imagesApi.getImageStats).mockResolvedValue({
+      count: 0,
+      storage_bytes: 0,
+      by_status: {},
+      by_mime_type: {},
+      uploads_per_day: [],
+    } as ImageStats);
     const wrapper = mountPage();
     expect(wrapper.text()).toContain('a@b.com');
   });
@@ -49,7 +55,13 @@ describe('DashboardPage', () => {
   });
 
   it('renders the image count once loaded', async () => {
-    vi.mocked(imagesApi.getImageStats).mockResolvedValue({ count: 7, storage_bytes: 0 });
+    vi.mocked(imagesApi.getImageStats).mockResolvedValue({
+      count: 7,
+      storage_bytes: 0,
+      by_status: {},
+      by_mime_type: {},
+      uploads_per_day: [],
+    } as ImageStats);
     const wrapper = mountPage();
     await flushPromises();
     expect(wrapper.findAll('.text-2xl')[0].text()).toBe('7');
