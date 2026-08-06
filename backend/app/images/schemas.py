@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel
 
@@ -29,6 +29,14 @@ class ImageList(BaseModel):
     offset: int
 
 
+class UploadsPerDay(BaseModel):
+    date: date
+    count: int
+
+
 class ImageStats(BaseModel):
     count: int
     storage_bytes: int
+    by_status: dict[ImageStatus, int]
+    by_mime_type: dict[str, int]
+    uploads_per_day: list[UploadsPerDay]
