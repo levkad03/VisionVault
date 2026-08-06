@@ -23,7 +23,15 @@ export interface ImageList {
   offset: number;
 }
 
+export interface UploadsPerDay {
+  date: string;
+  count: number;
+}
+
 export interface ImageStats {
   count: number;
   storage_bytes: number;
+  by_status: Record<ImageStatus, number>;
+  by_mime_type: Record<string, number>;
+  uploads_per_day: UploadsPerDay[];
 }
