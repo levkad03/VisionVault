@@ -7,6 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
+from sqlalchemy.types import JSON
 
 from app.core.database import Base
 
@@ -44,6 +45,7 @@ class Image(Base):
     camera: Mapped[str | None] = mapped_column(String(255), nullable=True)
     lens: Mapped[str | None] = mapped_column(String(255), nullable=True)
     gps: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dominant_colors: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     status: Mapped[ImageStatus] = mapped_column(
         SAEnum(ImageStatus),
