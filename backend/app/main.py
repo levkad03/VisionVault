@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.api import router as auth_router
+from app.captions.api import router as captions_router
 from app.core.config import settings
 from app.core.database import get_db
 from app.embeddings.qdrant_client import ensure_collection_exists
@@ -32,6 +33,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(images_router, prefix="/images", tags=["images"])
 app.include_router(objects_router, prefix="/images", tags=["objects"])
+app.include_router(captions_router, prefix="/images", tags=["captions"])
 app.include_router(search_router, prefix="/search", tags=["search"])
 
 
