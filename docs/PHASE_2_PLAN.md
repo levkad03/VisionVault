@@ -27,6 +27,9 @@ Read from the current codebase (not just the plan) so Phase 2 builds on what exi
 | EXIF | **No new module** — a `MetadataProcessor` that writes straight to `Image.taken_at/camera/lens/gps` | Same reasoning: those columns already exist on `Image` from Phase 1, unused until now |
 | Object detection model | **Ultralytics YOLO** (`yolov8n.pt`, nano) | Matches spec's tech stack; nano checkpoint keeps CPU inference tolerable for local dev |
 | OCR | **EasyOCR** | Matches spec's tech stack |
+| OCR reader lifecycle | **Module-level singleton** `Reader` in `app/ocr/reader.py`, built once per worker process, reused by every `ocr_task` call | `easyocr.Reader(...)` init loads model weights — several seconds. Doing that per-image would dwarf actual inference cost |
+| OCR languages | Fixed list via `settings.OCR_LANGUAGES` (e.g. `["en"]`), env-overridable, passed once to the singleton `Reader` | EasyOCR takes a fixed language list at init, no per-image auto-detect. No per-user/per-image language selection for Phase 2 — no stated need, real added scope (UI, storage, re-run logic) |
+| OCR noise filtering | Drop detected boxes below `settings.OCR_MIN_CONFIDENCE` (e.g. `0.4`); store no `OCRResult` row at all if nothing clears the bar | EasyOCR reads *any* text it detects, including incidental scene text (sign, logo, t-shirt) — that's correct behavior for OCR search, not a bug. The actual noise source is low-confidence misreads off textures/blur; confidence filtering addresses that directly instead of trying to classify "intentional vs incidental" text |
 | Captioning | **BLIP** (`Salesforce/blip-image-captioning-base`, via `transformers`) | Spec lists "Image captioning" as a goal without naming a model; BLIP is small, well-supported by `transformers` (already a dependency via the embeddings work), CPU-runnable |
 | Color extraction | Pillow's `Image.quantize()` on a downsized copy, no new dependency | Keeps this processor cheap; a full k-means/colorthief dependency is unjustified for "top-N dominant colors" |
 | Processing progress | **WebSocket, one connection per user**, backed by **Redis pub/sub** | Celery workers are a separate process from the FastAPI app; pub/sub is the standard way to get a task's progress event from worker to API to browser. One socket per user (not per image) keeps the frontend's connection count flat regardless of how many images are mid-pipeline |
@@ -56,7 +59,7 @@ DetectedObject (new)
 
 OCRResult (new)
   id, image_id (FK -> Image)
-  text, language
+  text, language, confidence
 
 Caption (new)
   id, image_id (FK -> Image)
@@ -84,7 +87,7 @@ app/ocr/
 ├── schemas.py       # OCRResultRead
 ├── models.py         # OCRResult
 ├── exceptions.py
-└── reader.py          # thin wrapper around easyocr.Reader, mocked in tests
+└── reader.py          # module-level singleton easyocr.Reader(settings.OCR_LANGUAGES), mocked in tests
 
 app/captions/
 ├── api.py          # GET /images/{id}/caption
@@ -120,7 +123,7 @@ New tasks, each following the existing `thumbnail_task`/`embedding_task` shape (
 metadata_task            # EXIF -> Image.taken_at/camera/lens/gps
 color_task                 # dominant_colors -> Image.dominant_colors
 object_detection_task    # YOLO -> DetectedObject rows
-ocr_task                    # EasyOCR -> OCRResult row
+ocr_task                    # EasyOCR -> OCRResult row (boxes below OCR_MIN_CONFIDENCE dropped)
 caption_task                # BLIP -> Caption row
 ```
 
@@ -198,6 +201,7 @@ export interface DetectedObject {
 export interface OCRResult {
   text: string;
   language: string | null;
+  confidence: number;
 }
 
 export interface Caption {
@@ -243,8 +247,8 @@ export interface ImageDetail extends Image {
    → verify: pytest asserts `dominant_colors` is a non-empty list of valid hex strings after processing.
 5. **Object detection (`detector.py` + `object_detection_task`)** — YOLO inference, insert `DetectedObject` rows.
    → verify: pytest mocks `detector.py`'s output and asserts rows are created with the right `image_id`.
-6. **OCR (`reader.py` + `ocr_task`)** — same pattern.
-   → verify: same shape, mocked EasyOCR output.
+6. **OCR (`reader.py` + `ocr_task`)** — singleton `Reader`, same task pattern, drop boxes below `OCR_MIN_CONFIDENCE`.
+   → verify: mocked EasyOCR output with a mix of boxes above/below the confidence threshold; assert only the qualifying ones persist, and that an all-low-confidence result stores no row.
 7. **Captioning (`model.py` + `caption_task`)** — same pattern.
    → verify: same shape, mocked BLIP output.
 8. **Wire the full chain** — update `app/processing/tasks.py`'s `chain(...)` call per §2.3.
