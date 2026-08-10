@@ -10,6 +10,8 @@ from app.embeddings.clip import encode_image
 from app.embeddings.qdrant_client import upsert_embedding
 from app.images.models import ImageStatus
 from app.images.repository import ImageRepository
+from app.objects.detector import detect_objects
+from app.objects.repository import ObjectRepository
 from app.processing.colors import extract_colors
 from app.processing.exif import extract_metadata
 from app.shared import storage
@@ -112,6 +114,27 @@ async def _color(image_id: uuid.UUID) -> None:
             colors = extract_colors(img)
 
         await repository.update(image, dominant_colors=colors)
+
+
+@celery_app.task(name="processing.object_detection")
+def object_detection_task(image_id: str) -> str:
+    asyncio.run(_object_detection(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _object_detection(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            detections = detect_objects(img.convert("RGB"))
+
+        await ObjectRepository(session).create_many(image_id, detections)
 
 
 @celery_app.task(name="processing.mark_completed")
