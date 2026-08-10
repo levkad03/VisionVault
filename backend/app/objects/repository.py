@@ -16,3 +16,12 @@ class ObjectRepository:
         )
 
         return list(result.scalars().all())
+
+    async def create_many(
+        self, image_id: uuid.UUID, detections: list[dict]
+    ) -> list[DetectedObject]:
+        objects = [DetectedObject(image_id=image_id, **d) for d in detections]
+        self.session.add_all(objects)
+        await self.session.commit()
+
+        return objects
