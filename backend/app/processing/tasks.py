@@ -10,6 +10,7 @@ from app.embeddings.clip import encode_image
 from app.embeddings.qdrant_client import upsert_embedding
 from app.images.models import ImageStatus
 from app.images.repository import ImageRepository
+from app.processing.exif import extract_metadata
 from app.shared import storage
 
 THUMBNAIL_SIZE = (400, 400)
@@ -67,6 +68,28 @@ async def _embedding(image_id: uuid.UUID) -> None:
             vector = encode_image(img.convert("RGB"))
 
         await upsert_embedding(image.id, image.owner_id, vector)
+
+
+@celery_app.task(name="processing.metadata")
+def metadata_task(image_id: str) -> str:
+    asyncio.run(_metadata(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _metadata(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+
+        with PILImage.open(BytesIO(original)) as img:
+            metadata = extract_metadata(img)
+
+        await repository.update(image, **metadata)
 
 
 @celery_app.task(name="processing.mark_completed")
