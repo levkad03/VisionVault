@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     yolo_model_name: str = "yolov8n.pt"
     object_min_confidence: float = 0.25
 
+    ocr_languages: str = "en"
+    ocr_min_confidence: float = 0.4
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
@@ -43,6 +46,10 @@ class Settings(BaseSettings):
     @property
     def upload_allowed_mime_types_list(self) -> list[str]:
         return [mime.strip() for mime in self.upload_allowed_mime_types.split(",")]
+
+    @property
+    def ocr_languages_list(self) -> list[str]:
+        return [lang.strip() for lang in self.ocr_languages.split(",")]
 
 
 @lru_cache
