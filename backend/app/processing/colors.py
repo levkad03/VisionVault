@@ -19,6 +19,8 @@ def extract_colors(img: PILImage.Image, count: int = COLOR_COUNT) -> list[str]:
 
     hex_colors = []
     for _, index in color_counts[:count]:
+        if not isinstance(index, int):
+            continue
         r, g, b = palette[index * 3 : index * 3 + 3]
         hex_colors.append(f"#{r:02x}{g:02x}{b:02x}")
 
