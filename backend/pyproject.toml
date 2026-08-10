@@ -44,5 +44,5 @@ testpaths = ["tests"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["open_clip.*", "celery.*"]
+module = ["open_clip.*", "celery.*", "easyocr.*"]
 ignore_missing_imports = true
