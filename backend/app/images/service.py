@@ -14,6 +14,7 @@ from app.processing.tasks import (
     embedding_task,
     mark_completed_task,
     mark_failed_task,
+    metadata_task,
     thumbnail_task,
 )
 from app.shared import storage
@@ -46,6 +47,7 @@ class ImageService:
 
         pipeline = chain(
             thumbnail_task.s(str(image.id)),
+            metadata_task.s(),
             embedding_task.s(),
             mark_completed_task.s(),
         )
