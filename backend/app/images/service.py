@@ -17,6 +17,7 @@ from app.processing.tasks import (
     mark_failed_task,
     metadata_task,
     object_detection_task,
+    ocr_task,
     thumbnail_task,
 )
 from app.shared import storage
@@ -53,6 +54,7 @@ class ImageService:
             embedding_task.s(),
             color_task.s(),
             object_detection_task.s(),
+            ocr_task.s(),
             mark_completed_task.s(),
         )
         pipeline.apply_async(link_error=mark_failed_task.s(str(image.id)))

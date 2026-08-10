@@ -12,6 +12,8 @@ from app.images.models import ImageStatus
 from app.images.repository import ImageRepository
 from app.objects.detector import detect_objects
 from app.objects.repository import ObjectRepository
+from app.ocr.reader import read_text
+from app.ocr.repository import OCRRepository
 from app.processing.colors import extract_colors
 from app.processing.exif import extract_metadata
 from app.shared import storage
@@ -134,7 +136,28 @@ async def _object_detection(image_id: uuid.UUID) -> None:
         with PILImage.open(BytesIO(original)) as img:
             detections = detect_objects(img.convert("RGB"))
 
-        await ObjectRepository(session).create_many(image_id, detections)
+        await ObjectRepository(session).create_many(image.id, detections)
+
+
+@celery_app.task(name="processing.ocr")
+def ocr_task(image_id: str) -> str:
+    asyncio.run(_ocr(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _ocr(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            detections = read_text(img.convert("RGB"))
+
+        await OCRRepository(session).create_many(image.id, detections)
 
 
 @celery_app.task(name="processing.mark_completed")
