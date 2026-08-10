@@ -1,8 +1,12 @@
+from pathlib import Path
+
 from PIL import Image as PILImage
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 
 from app.core.config import settings
+
+MODELS_DIR = Path(__file__).resolve().parents[2] / "models"
 
 _model: YOLO | None = None
 
@@ -10,7 +14,8 @@ _model: YOLO | None = None
 def _load() -> YOLO:
     global _model
     if _model is None:
-        _model = YOLO(settings.yolo_model_name)
+        MODELS_DIR.mkdir(parents=True, exist_ok=True)
+        _model = YOLO(str(MODELS_DIR / settings.yolo_model_name))
 
     return _model
 
