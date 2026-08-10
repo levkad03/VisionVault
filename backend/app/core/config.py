@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     ocr_languages: str = "en"
     ocr_min_confidence: float = 0.4
 
+    caption_model_name: str = "Salesforce/blip-image-captioning-base"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
