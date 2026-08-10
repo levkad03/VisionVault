@@ -13,11 +13,11 @@ def extract_metadata(img: PILImage.Image) -> dict:
     exif_ifd = exif.get_ifd(ExifTags.IFD.Exif)
     gps_ifd = exif.get_ifd(ExifTags.IFD.GPSInfo)
 
-    make = exif.get(ExifTags.Base.Make.value, "").strip()
-    model = exif.get(ExifTags.Base.Model.value, "").strip()
+    make = exif.get(ExifTags.Base.Make.value, "").strip(" \x00")
+    model = exif.get(ExifTags.Base.Model.value, "").strip(" \x00")
     camera = f"{make} {model}".strip() or None
 
-    lens = exif_ifd.get(ExifTags.Base.LensModel.value, "").strip() or None
+    lens = exif_ifd.get(ExifTags.Base.LensModel.value, "").strip(" \x00") or None
 
     taken_at = None
 
