@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     clip_model_name: str = "ViT-B-32"
     clip_pretrained: str = "laion2b_s34b_b79k"
 
+    yolo_model_name: str = "yolov8n.pt"
+    object_min_confidence: float = 0.25
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
