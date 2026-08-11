@@ -16,3 +16,9 @@ class CaptionRepository:
         )
 
         return result.scalar_one_or_none()
+
+    async def create(self, image_id: uuid.UUID, text: str, model: str) -> Caption:
+        caption = Caption(image_id=image_id, text=text, model=model)
+        self.session.add(caption)
+        await self.session.commit()
+        return caption

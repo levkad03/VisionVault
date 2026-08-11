@@ -4,7 +4,10 @@ from io import BytesIO
 
 from PIL import Image as PILImage
 
+from app.captions.captioner import generate_caption
+from app.captions.repository import CaptionRepository
 from app.core.celery_app import celery_app
+from app.core.config import settings
 from app.core.database import task_db_session
 from app.embeddings.clip import encode_image
 from app.embeddings.qdrant_client import upsert_embedding
@@ -158,6 +161,29 @@ async def _ocr(image_id: uuid.UUID) -> None:
             detections = read_text(img.convert("RGB"))
 
         await OCRRepository(session).create_many(image.id, detections)
+
+
+@celery_app.task(name="processing.caption")
+def caption_task(image_id: str) -> str:
+    asyncio.run(_caption(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _caption(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            text = generate_caption(img.convert("RGB"))
+
+        await CaptionRepository(session).create(
+            image.id, text, settings.caption_model_name
+        )
 
 
 @celery_app.task(name="processing.mark_completed")
