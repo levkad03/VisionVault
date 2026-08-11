@@ -11,6 +11,7 @@ from app.embeddings.qdrant_client import ensure_collection_exists
 from app.images.api import router as images_router
 from app.objects.api import router as objects_router
 from app.ocr.api import router as ocr_router
+from app.processing.ws import router as ws_router
 from app.search.api import router as search_router
 from app.shared.storage import ensure_bucket_exists
 
@@ -37,6 +38,7 @@ app.include_router(objects_router, prefix="/images", tags=["objects"])
 app.include_router(captions_router, prefix="/images", tags=["captions"])
 app.include_router(ocr_router, prefix="/images", tags=["ocr"])
 app.include_router(search_router, prefix="/search", tags=["search"])
+app.include_router(ws_router)
 
 
 @app.get("/health")
