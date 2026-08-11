@@ -19,6 +19,7 @@ from app.ocr.reader import read_text
 from app.ocr.repository import OCRRepository
 from app.processing.colors import extract_colors
 from app.processing.exif import extract_metadata
+from app.processing.progress import publish_stage
 from app.shared import storage
 
 THUMBNAIL_SIZE = (400, 400)
@@ -56,6 +57,8 @@ async def _thumbnail(image_id: uuid.UUID) -> None:
             status=ImageStatus.PROCESSING,
         )
 
+        await publish_stage(image.owner_id, image.id, "thumbnail", "processing")
+
 
 @celery_app.task(name="processing.embedding")
 def embedding_task(image_id: str) -> str:
@@ -76,6 +79,8 @@ async def _embedding(image_id: uuid.UUID) -> None:
             vector = encode_image(img.convert("RGB"))
 
         await upsert_embedding(image.id, image.owner_id, vector)
+
+        await publish_stage(image.owner_id, image.id, "embedding", "processing")
 
 
 @celery_app.task(name="processing.metadata")
@@ -99,6 +104,8 @@ async def _metadata(image_id: uuid.UUID) -> None:
 
         await repository.update(image, **metadata)
 
+        await publish_stage(image.owner_id, image.id, "metadata", "processing")
+
 
 @celery_app.task(name="processing.color")
 def color_task(image_id: str) -> str:
@@ -119,6 +126,8 @@ async def _color(image_id: uuid.UUID) -> None:
             colors = extract_colors(img)
 
         await repository.update(image, dominant_colors=colors)
+
+        await publish_stage(image.owner_id, image.id, "color", "processing")
 
 
 @celery_app.task(name="processing.object_detection")
@@ -141,6 +150,8 @@ async def _object_detection(image_id: uuid.UUID) -> None:
 
         await ObjectRepository(session).create_many(image.id, detections)
 
+        await publish_stage(image.owner_id, image.id, "object_detection", "processing")
+
 
 @celery_app.task(name="processing.ocr")
 def ocr_task(image_id: str) -> str:
@@ -161,6 +172,8 @@ async def _ocr(image_id: uuid.UUID) -> None:
             detections = read_text(img.convert("RGB"))
 
         await OCRRepository(session).create_many(image.id, detections)
+
+        await publish_stage(image.owner_id, image.id, "ocr", "processing")
 
 
 @celery_app.task(name="processing.caption")
@@ -185,6 +198,8 @@ async def _caption(image_id: uuid.UUID) -> None:
             image.id, text, settings.caption_model_name
         )
 
+        await publish_stage(image.owner_id, image.id, "caption", "processing")
+
 
 @celery_app.task(name="processing.mark_completed")
 def mark_completed_task(image_id: str) -> None:
@@ -200,6 +215,7 @@ async def _mark_completed(image_id: uuid.UUID) -> None:
             return
 
         await repository.update(image, status=ImageStatus.COMPLETED)
+        await publish_stage(image.owner_id, image.id, "done", "completed")
 
 
 @celery_app.task(name="processing.mark_failed")
@@ -213,3 +229,4 @@ async def _mark_failed(image_id: uuid.UUID) -> None:
         image = await repository.get_by_id(image_id)
         if image is not None:
             await repository.update(image, status=ImageStatus.FAILED)
+            await publish_stage(image.owner_id, image.id, "failed", "failed")
