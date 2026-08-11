@@ -3,7 +3,10 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
+from app.captions.schemas import CaptionRead
 from app.images.models import ImageStatus
+from app.objects.schemas import DetectedObjectRead
+from app.ocr.schemas import OCRResultRead
 
 
 class ImageRead(BaseModel):
@@ -40,3 +43,10 @@ class ImageStats(BaseModel):
     by_status: dict[ImageStatus, int]
     by_mime_type: dict[str, int]
     uploads_per_day: list[UploadsPerDay]
+
+
+class ImageDetail(ImageRead):
+    dominant_colors: list[str] | None
+    objects: list[DetectedObjectRead]
+    ocr: list[OCRResultRead]
+    caption: CaptionRead | None
