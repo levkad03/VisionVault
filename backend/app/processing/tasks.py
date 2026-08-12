@@ -4,12 +4,22 @@ from io import BytesIO
 
 from PIL import Image as PILImage
 
+from app.captions.captioner import generate_caption
+from app.captions.repository import CaptionRepository
 from app.core.celery_app import celery_app
+from app.core.config import settings
 from app.core.database import task_db_session
 from app.embeddings.clip import encode_image
 from app.embeddings.qdrant_client import upsert_embedding
 from app.images.models import ImageStatus
 from app.images.repository import ImageRepository
+from app.objects.detector import detect_objects
+from app.objects.repository import ObjectRepository
+from app.ocr.reader import read_text
+from app.ocr.repository import OCRRepository
+from app.processing.colors import extract_colors
+from app.processing.exif import extract_metadata
+from app.processing.progress import publish_stage
 from app.shared import storage
 
 THUMBNAIL_SIZE = (400, 400)
@@ -47,6 +57,8 @@ async def _thumbnail(image_id: uuid.UUID) -> None:
             status=ImageStatus.PROCESSING,
         )
 
+        await publish_stage(image.owner_id, image.id, "thumbnail", "processing")
+
 
 @celery_app.task(name="processing.embedding")
 def embedding_task(image_id: str) -> str:
@@ -68,6 +80,126 @@ async def _embedding(image_id: uuid.UUID) -> None:
 
         await upsert_embedding(image.id, image.owner_id, vector)
 
+        await publish_stage(image.owner_id, image.id, "embedding", "processing")
+
+
+@celery_app.task(name="processing.metadata")
+def metadata_task(image_id: str) -> str:
+    asyncio.run(_metadata(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _metadata(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+
+        with PILImage.open(BytesIO(original)) as img:
+            metadata = extract_metadata(img)
+
+        await repository.update(image, **metadata)
+
+        await publish_stage(image.owner_id, image.id, "metadata", "processing")
+
+
+@celery_app.task(name="processing.color")
+def color_task(image_id: str) -> str:
+    asyncio.run(_color(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _color(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            colors = extract_colors(img)
+
+        await repository.update(image, dominant_colors=colors)
+
+        await publish_stage(image.owner_id, image.id, "color", "processing")
+
+
+@celery_app.task(name="processing.object_detection")
+def object_detection_task(image_id: str) -> str:
+    asyncio.run(_object_detection(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _object_detection(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            detections = detect_objects(img.convert("RGB"))
+
+        await ObjectRepository(session).create_many(image.id, detections)
+
+        await publish_stage(image.owner_id, image.id, "object_detection", "processing")
+
+
+@celery_app.task(name="processing.ocr")
+def ocr_task(image_id: str) -> str:
+    asyncio.run(_ocr(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _ocr(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            detections = read_text(img.convert("RGB"))
+
+        await OCRRepository(session).create_many(image.id, detections)
+
+        await publish_stage(image.owner_id, image.id, "ocr", "processing")
+
+
+@celery_app.task(name="processing.caption")
+def caption_task(image_id: str) -> str:
+    asyncio.run(_caption(uuid.UUID(image_id)))
+    return image_id
+
+
+async def _caption(image_id: uuid.UUID) -> None:
+    async with task_db_session() as session:
+        repository = ImageRepository(session)
+        image = await repository.get_by_id(image_id)
+
+        if image is None:
+            return
+
+        original = await storage.download_bytes(image.storage_path)
+        with PILImage.open(BytesIO(original)) as img:
+            text = generate_caption(img.convert("RGB"))
+
+        await CaptionRepository(session).create(
+            image.id, text, settings.caption_model_name
+        )
+
+        await publish_stage(image.owner_id, image.id, "caption", "processing")
+
 
 @celery_app.task(name="processing.mark_completed")
 def mark_completed_task(image_id: str) -> None:
@@ -83,6 +215,7 @@ async def _mark_completed(image_id: uuid.UUID) -> None:
             return
 
         await repository.update(image, status=ImageStatus.COMPLETED)
+        await publish_stage(image.owner_id, image.id, "done", "completed")
 
 
 @celery_app.task(name="processing.mark_failed")
@@ -96,3 +229,4 @@ async def _mark_failed(image_id: uuid.UUID) -> None:
         image = await repository.get_by_id(image_id)
         if image is not None:
             await repository.update(image, status=ImageStatus.FAILED)
+            await publish_stage(image.owner_id, image.id, "failed", "failed")

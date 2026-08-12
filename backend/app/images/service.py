@@ -11,9 +11,14 @@ from app.images.models import Image, ImageStatus
 from app.images.repository import ImageRepository
 from app.images.schemas import ImageStats, UploadsPerDay
 from app.processing.tasks import (
+    caption_task,
+    color_task,
     embedding_task,
     mark_completed_task,
     mark_failed_task,
+    metadata_task,
+    object_detection_task,
+    ocr_task,
     thumbnail_task,
 )
 from app.shared import storage
@@ -46,7 +51,12 @@ class ImageService:
 
         pipeline = chain(
             thumbnail_task.s(str(image.id)),
+            metadata_task.s(),
             embedding_task.s(),
+            color_task.s(),
+            object_detection_task.s(),
+            ocr_task.s(),
+            caption_task.s(),
             mark_completed_task.s(),
         )
         pipeline.apply_async(link_error=mark_failed_task.s(str(image.id)))

@@ -5,12 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.backend import current_active_user
 from app.auth.models import User
+from app.captions.repository import CaptionRepository
+from app.captions.schemas import CaptionRead
 from app.core.database import get_db
 from app.images.exceptions import FileTooLarge, ImageNotFound, InvalidFileType
 from app.images.models import Image, ImageStatus
 from app.images.repository import ImageRepository
-from app.images.schemas import ImageList, ImageRead, ImageStats
+from app.images.schemas import ImageDetail, ImageList, ImageRead, ImageStats
 from app.images.service import ImageService
+from app.objects.repository import ObjectRepository
+from app.objects.schemas import DetectedObjectRead
+from app.ocr.repository import OCRRepository
+from app.ocr.schemas import OCRResultRead
 from app.shared import storage
 
 router = APIRouter()
@@ -36,6 +42,27 @@ async def to_read(image: Image) -> ImageRead:
         url=await storage.get_presigned_url(image.storage_path),
         thumbnail_url=await storage.get_presigned_url(image.thumbnail_path)
         if image.thumbnail_path
+        else None,
+    )
+
+
+async def to_detail(image: Image, session: AsyncSession) -> ImageDetail:
+    base = await to_read(image)
+    objects = await ObjectRepository(session).list_by_image(image.id)
+    ocr_results = await OCRRepository(session).list_by_image(image.id)
+    caption = await CaptionRepository(session).get_by_image(image.id)
+
+    return ImageDetail(
+        **base.model_dump(),
+        dominant_colors=image.dominant_colors,
+        objects=[
+            DetectedObjectRead.model_validate(o, from_attributes=True) for o in objects
+        ],
+        ocr=[
+            OCRResultRead.model_validate(o, from_attributes=True) for o in ocr_results
+        ],
+        caption=CaptionRead.model_validate(caption, from_attributes=True)
+        if caption
         else None,
     )
 
@@ -83,18 +110,19 @@ async def get_stats(
     return await service.stats(user.id)
 
 
-@router.get("/{image_id}", response_model=ImageRead)
+@router.get("/{image_id}", response_model=ImageDetail)
 async def get_image(
     image_id: uuid.UUID,
     user: User = Depends(current_active_user),
     service: ImageService = Depends(get_service),
-) -> ImageRead:
+    session: AsyncSession = Depends(get_db),
+) -> ImageDetail:
     try:
         image = await service.get(user.id, image_id)
     except ImageNotFound as exc:
         raise HTTPException(status_code=404, detail="Image not found") from exc
 
-    return await to_read(image)
+    return await to_detail(image, session)
 
 
 @router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
