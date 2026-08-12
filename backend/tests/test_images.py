@@ -8,10 +8,13 @@ from fastapi import UploadFile
 
 from app.auth.manager import get_user_db, get_user_manager
 from app.auth.schemas import UserCreate
+from app.captions.repository import CaptionRepository
 from app.images.exceptions import FileTooLarge, ImageNotFound, InvalidFileType
 from app.images.models import ImageStatus
 from app.images.repository import ImageRepository
 from app.images.service import ImageService
+from app.objects.repository import ObjectRepository
+from app.ocr.repository import OCRRepository
 
 
 @pytest.fixture
@@ -290,3 +293,70 @@ async def test_stats_uploads_per_day_fills_gaps_and_excludes_old_uploads(
     assert by_date[today] == 1
     assert stats.count == 2
     assert len(stats.uploads_per_day) == 30
+
+
+async def test_get_image_returns_detail_with_all_fields_via_api(client, session):
+    headers = await _auth_headers(client)
+    me = (await client.get("/auth/me", headers=headers)).json()
+    owner_id = uuid.UUID(me["id"])
+    image = await _create_image(
+        session, owner_id, dominant_colors=["#ff0000", "#00ff00"]
+    )
+
+    await ObjectRepository(session).create_many(
+        image.id,
+        [
+            {
+                "class_name": "cat",
+                "confidence": 0.92,
+                "bounding_box": [1.0, 2.0, 3.0, 4.0],
+            }
+        ],
+    )
+
+    await OCRRepository(session).create_many(
+        image.id, [{"text": "hello", "confidence": 0.87, "language": "en"}]
+    )
+    await CaptionRepository(session).create(image.id, "a cat on a couch", "blip-base")
+
+    with patch(
+        "app.images.api.storage.get_presigned_url",
+        new=AsyncMock(return_value="http://fake-url"),
+    ):
+        r = await client.get(f"/images/{image.id}", headers=headers)
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["dominant_colors"] == ["#ff0000", "#00ff00"]
+    assert len(body["objects"]) == 1
+    assert body["objects"][0]["class_name"] == "cat"
+    assert body["objects"][0]["bounding_box"] == [1.0, 2.0, 3.0, 4.0]
+    assert len(body["ocr"]) == 1
+    assert body["ocr"][0]["text"] == "hello"
+    assert body["caption"]["text"] == "a cat on a couch"
+
+
+async def test_get_image_detail_defaults_when_no_child_data(client, session):
+    headers = await _auth_headers(client)
+    me = (await client.get("/auth/me", headers=headers)).json()
+    image = await _create_image(session, uuid.UUID(me["id"]))
+
+    with patch(
+        "app.images.api.storage.get_presigned_url",
+        new=AsyncMock(return_value="http://fake-url"),
+    ):
+        r = await client.get(f"/images/{image.id}", headers=headers)
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["dominant_colors"] is None
+    assert body["objects"] == []
+    assert body["ocr"] == []
+    assert body["caption"] is None
+
+
+async def test_get_image_404_for_foreign_owner(client, session, user):
+    image = await _create_image(session, user.id)
+    headers = await _auth_headers(client)  # different account than `user` fixture
+    r = await client.get(f"/images/{image.id}", headers=headers)
+    assert r.status_code == 404
