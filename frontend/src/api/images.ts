@@ -1,5 +1,5 @@
 import { apiFetch } from '@/api/client';
-import type { Image, ImageList, ImageStats } from '@/types/image';
+import type { Image, ImageDetail, ImageList, ImageStats } from '@/types/image';
 
 export function listImages(limit: number, offset: number) {
   return apiFetch<ImageList>(`/images?limit=${limit}&offset=${offset}`);
@@ -17,4 +17,8 @@ export function deleteImage(id: string) {
 
 export function getImageStats() {
   return apiFetch<ImageStats>('/images/stats');
+}
+
+export function getImageDetail(id: string) {
+  return apiFetch<ImageDetail>(`/images/${id}`);
 }
