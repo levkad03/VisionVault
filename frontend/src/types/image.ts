@@ -35,3 +35,30 @@ export interface ImageStats {
   by_mime_type: Record<string, number>;
   uploads_per_day: UploadsPerDay[];
 }
+
+export interface DetectedObject {
+  id: string;
+  class_name: string;
+  confidence: number;
+  bounding_box: number[];
+}
+
+export interface OCRResult {
+  id: string;
+  text: string;
+  language: string | null;
+  confidence: number;
+}
+
+export interface Caption {
+  id: string;
+  text: string;
+  model: string;
+}
+
+export interface ImageDetail extends Image {
+  dominant_colors: string[] | null;
+  objects: DetectedObject[];
+  ocr: OCRResult[];
+  caption: Caption | null;
+}
