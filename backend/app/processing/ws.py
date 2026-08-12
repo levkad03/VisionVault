@@ -24,9 +24,10 @@ async def images_ws(websocket: WebSocket, token: str) -> None:
 
     await websocket.accept()
     pubsub = get_redis().pubsub()
-    await pubsub.subscribe(f"ws:user:{user.id}")
 
     try:
+        await pubsub.subscribe(f"ws:user:{user.id}")
+
         async for message in pubsub.listen():
             if message["type"] != "message":
                 continue
