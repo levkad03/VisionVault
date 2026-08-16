@@ -37,7 +37,7 @@ watch(lastMessage, (message) => {
       <img
         :src="data.url"
         :alt="data.filename"
-        class="w-full rounded object-contain md:col-span-2"
+        class="mx-auto max-h-[50vh] w-auto rounded object-contain md:col-span-2"
       />
       <Card>
         <CardHeader>
