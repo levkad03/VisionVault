@@ -63,6 +63,11 @@ const deleteMutation = useMutation({
           :alt="selectedImage.filename"
           class="max-h-[85vh] w-full rounded object-contain"
         />
+        <Button v-if="selectedImage" as-child class="mx-auto">
+          <RouterLink :to="{ name: 'image-detail', params: { id: selectedImage.id } }">
+            View Details
+          </RouterLink>
+        </Button>
       </DialogContent>
     </Dialog>
     <div class="mt-4 flex gap-2">
