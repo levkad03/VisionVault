@@ -12,6 +12,17 @@ export interface ProcessingImage {
   status: string;
 }
 
+function parseMessage(raw: string | null): ProcessingImage | null {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as ProcessingImage;
+  } catch {
+    console.warn('Ignoring malformed processing message:', raw);
+    return null;
+  }
+}
+
 function useImageProcessingSocketImpl() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
@@ -23,9 +34,7 @@ function useImageProcessingSocketImpl() {
     autoReconnect: true,
   });
 
-  const lastMessage = computed<ProcessingImage | null>(() =>
-    data.value ? (JSON.parse(data.value) as ProcessingImage) : null,
-  );
+  const lastMessage = computed(() => parseMessage(data.value));
 
   watch(lastMessage, (message) => {
     if (message) queryClient.invalidateQueries({ queryKey: ['images'] });

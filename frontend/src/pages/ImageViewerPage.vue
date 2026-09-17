@@ -41,7 +41,7 @@ watch(lastMessage, (message) => {
       />
       <Card>
         <CardHeader>
-          <CardTitle>Detaild</CardTitle>
+          <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent class="space-y-1 text-sm">
           <p>Status: {{ data.status }}</p>

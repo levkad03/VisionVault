@@ -55,7 +55,7 @@ const deleteMutation = useMutation({
       </div>
     </div>
     <Dialog :open="!!selectedImage" @update:open="(v) => !v && (selectedImage = null)">
-      <DialogContent class="max-w-3-xl border-none bg-transparent p-0 shadow-none">
+      <DialogContent class="max-w-3xl border-none bg-transparent p-0 shadow-none">
         <DialogTitle class="sr-only">{{ selectedImage?.filename }}</DialogTitle>
         <img
           v-if="selectedImage"
