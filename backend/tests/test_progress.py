@@ -32,16 +32,16 @@ def test_get_redis_uses_celery_broker_url(monkeypatch):
 async def test_publish_stage_publishes_to_owner_channel():
     owner_id = uuid.uuid4()
     image_id = uuid.uuid4()
-    mock_redis = AsyncMock()
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
 
-    with patch("app.processing.progress.get_redis", return_value=mock_redis):
+    with patch("app.processing.progress.redis.from_url", return_value=mock_client):
         await progress.publish_stage(owner_id, image_id, "thumbnail", "processing")
 
-    mock_redis.publish.assert_awaited_once()
-    channel, body = mock_redis.publish.await_args.args
-    assert channel == f"ws:user:{owner_id}"
-    assert json.loads(body) == {
-        "image_id": str(image_id),
-        "stage": "thumbnail",
-        "status": "processing",
-    }
+    mock_client.publish.assert_awaited_once_with(
+        f"ws:user:{owner_id}",
+        json.dumps(
+            {"image_id": str(image_id), "stage": "thumbnail", "status": "processing"}
+        ),
+    )
+    mock_client.__aexit__.assert_awaited_once()

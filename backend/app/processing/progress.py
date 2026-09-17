@@ -9,6 +9,7 @@ _redis: redis.Redis | None = None
 
 
 def get_redis() -> redis.Redis:
+    """Shared client for the FastAPI process (single long-lived event loop)."""
     global _redis
 
     if _redis is None:
@@ -21,4 +22,5 @@ async def publish_stage(
     owner_id: uuid.UUID, image_id: uuid.UUID, stage: str, status: str
 ) -> None:
     message = json.dumps({"image_id": str(image_id), "stage": stage, "status": status})
-    await get_redis().publish(f"ws:user:{owner_id}", message)
+    async with redis.from_url(settings.celery_broker_url) as client:
+        await client.publish(f"ws:user:{owner_id}", message)

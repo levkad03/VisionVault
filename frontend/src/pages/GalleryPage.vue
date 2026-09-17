@@ -3,7 +3,9 @@ import { deleteImage, listImages } from '@/api/images';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { useImageProcessingSocket } from '@/composables/useImageProcessingSocket';
 import type { Image } from '@/types/image';
+import { LoaderCircle } from '@lucide/vue';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import { computed, ref } from 'vue';
 
@@ -11,15 +13,17 @@ const limit = 24;
 const offset = ref(0);
 const queryClient = useQueryClient();
 const selectedImage = ref<Image | null>(null);
+const { stages } = useImageProcessingSocket();
 
 const { data, isPending } = useQuery({
   queryKey: ['images', offset],
   queryFn: () => listImages(limit, offset.value),
-  refetchInterval: (query) => {
-    const items = query.state.data?.items ?? [];
-    return items.some((i) => i.status === 'pending' || i.status === 'processing') ? 2000 : false;
-  },
 });
+
+function statusLabel(image: Image) {
+  // Only trust the socket stage while the DB says processing; guards against stale entries.
+  return image.status === 'processing' ? (stages.get(image.id) ?? 'processing') : image.status;
+}
 
 const hasNext = computed(() => (data.value ? offset.value + limit < data.value.total : false));
 
@@ -42,7 +46,8 @@ const deleteMutation = useMutation({
           @click="selectedImage = image"
         />
         <Badge v-if="image.status !== 'completed'" class="absolute top-2 left-2">
-          {{ image.status }}
+          <LoaderCircle v-if="image.status === 'processing'" class="animate-spin" />
+          {{ statusLabel(image) }}
         </Badge>
         <Button
           size="sm"

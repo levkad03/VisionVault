@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { useImageProcessingSocket } from '@/composables/useImageProcessingSocket';
 import { useTheme } from '@/composables/useTheme';
 import { useAuthStore } from '@/stores/auth';
 import { Moon, Sun } from '@lucide/vue';
@@ -8,6 +9,8 @@ import { useRouter } from 'vue-router';
 const auth = useAuthStore();
 const router = useRouter();
 const { isDark, toggleTheme } = useTheme();
+// Keep the processing socket alive for the whole authenticated session
+useImageProcessingSocket();
 
 function onLogout() {
   auth.logout();
