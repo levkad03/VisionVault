@@ -1,6 +1,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 
 const authMock = {
   user: { id: 'u1', email: 'a@b.com' } as { id: string; email: string } | null,
@@ -17,6 +18,14 @@ vi.mock('@/stores/auth', () => ({
 
 vi.mock('vue-router', () => ({
   useRouter: () => routerMock,
+}));
+
+vi.mock('@/composables/useImageProcessingSocket', () => ({
+  useImageProcessingSocket: () => ({
+    stages: new Map(),
+    lastMessage: ref(null),
+    status: ref('CLOSED'),
+  }),
 }));
 
 function mountLayout() {

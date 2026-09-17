@@ -3,10 +3,19 @@ import type { Image, ImageList } from '@/types/image';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ref } from 'vue';
 
 vi.mock('@/api/images', () => ({
   listImages: vi.fn(),
   deleteImage: vi.fn(),
+}));
+
+vi.mock('@/composables/useImageProcessingSocket', () => ({
+  useImageProcessingSocket: () => ({
+    stages: new Map(),
+    lastMessage: ref(null),
+    status: ref('CLOSED'),
+  }),
 }));
 
 const imagesApi = await import('@/api/images');
